@@ -1924,11 +1924,10 @@ else {
 if (Test-Path -Path $ISOFile) {
     try {
         Write-Log -msg "Verifying output ISO with 7-Zip..."
-        $verifyOutput = & $sevenZip l "$ISOFile" 2>&1
-        $verifyOutput | Write-Log
-        $reqFiles = @("sources\install.wim", "sources\boot.wim", "boot\bcd", "boot\boot.sdi", "bootmgr", "bootmgr.efi", "efi\microsoft\boot\efisys.bin")
-        # [MODIFIED] Use backslashes to match 7-Zip output
-        $missingFiles = $reqFiles | Where-Object { $verifyOutput -notmatch [regex]::Escape($_) }
+        $missingFiles = $reqFiles | Where-Object {
+    $pattern = $_ -replace '/', '\\'   # use Windows path separator
+    $verifyOutput -notmatch [regex]::Escape($pattern)
+}
 
         if ($missingFiles) {
             Write-Host "`nError: Created ISO is missing critical files" -ForegroundColor Red
