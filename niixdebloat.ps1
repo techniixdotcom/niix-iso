@@ -4,7 +4,7 @@
     niixdebloat.ps1  -  All-in-one Windows 11 ISO Debloat & Privacy Hardener
 .DESCRIPTION
     Single standalone file.  autounattend.xml and niix-tweaks.ps1 are embedded
-    as Base64 -- no extra files needed.  Drop next to (or browse for) a Win11
+    as Base64 --.  Drop next to (or browse for) a Win 11 iso
     ISO and run.
 .NOTES
     Based on WinUtil by Chris Titus (@christitustech) -- customised by niix
@@ -80,10 +80,9 @@ Write-Banner "  |   NN   NN  IIIII  IIIII  XX   XX                         |"
 Write-Banner "  |   NNN  NN    I      I     XX XX                          |"
 Write-Banner "  |   NN N NN    I      I      XXX                           |"
 Write-Banner "  |   NN  NNN    I      I     XX XX                          |"
-Write-Banner "  |   NN   NN  IIIII  IIIII  XX   XX  DEBLOAT  v2.0          |"
+Write-Banner "  |   NN   NN  IIIII  IIIII  XX   XX  DEBLOAT                |"
 Write-Banner "  |                                                          |"
 Write-Banner "  |      Windows 11 ISO Debloat & Privacy Hardener           |"
-Write-Banner "  |      autounattend.xml + niix-tweaks.ps1 embedded         |"
 Write-Banner "  |                                                          |"
 Write-Banner "  +----------------------------------------------------------+"
 Write-Banner ""
