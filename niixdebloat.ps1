@@ -88,9 +88,6 @@ Write-Banner "  |                                                          |"
 Write-Banner "  +----------------------------------------------------------+"
 Write-Banner ""
 
-# ===========================================================================
-#  STEP 1  --  LOCATE ISO
-# ===========================================================================
 Write-Title "STEP 1 -- Locating ISO file..."
 
 $scriptDir = if ($PSScriptRoot) { $PSScriptRoot } else { (Get-Location).Path }
@@ -462,46 +459,33 @@ Set-OfflineReg 'HKLM\zSOFTWARE\Microsoft\EdgeUpdate'          'DoNotUpdateToEdge
 Set-OfflineReg 'HKLM\zSOFTWARE\Policies\Microsoft\EdgeUpdate' 'UpdateDefault'                 'REG_DWORD' '0'
 Set-OfflineReg 'HKLM\zSOFTWARE\Policies\Microsoft\EdgeUpdate' 'InstallDefault'                'REG_DWORD' '0'
 
-# Permanently block Edge from ever being installed - belt AND braces
-# Blocks the inbox installer, the update service installer, and DISM/CBS reinstall
 Set-OfflineReg 'HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Microsoft Edge'   'NoRemove'        'REG_DWORD' '0'
 Set-OfflineReg 'HKLM\zSOFTWARE\Policies\Microsoft\Edge'                                        'HideFirstRunExperience'     'REG_DWORD' '1'
 Set-OfflineReg 'HKLM\zSOFTWARE\Policies\Microsoft\Edge'                                        'BackgroundModeEnabled'      'REG_DWORD' '0'
 Set-OfflineReg 'HKLM\zSOFTWARE\Policies\Microsoft\Edge'                                        'StartupBoostEnabled'        'REG_DWORD' '0'
 Set-OfflineReg 'HKLM\zSOFTWARE\Policies\Microsoft\MicrosoftEdge\Main'                         'AllowPrelaunch'             'REG_DWORD' '0'
 
-# Mark Edge as "do not reinstall" via CBS/component store flag
 Set-OfflineReg 'HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\MicrosoftEdge'                'IsEdgeStableSetupDone'      'REG_DWORD' '1'
 
-# Prevent Windows Update from pushing Edge back
 Set-OfflineReg 'HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Orchestrator\UScheduler_Oobe\EdgeUpdate' 'workCompleted' 'REG_DWORD' '1'
 Remove-OfflineReg 'HKLM\zSOFTWARE\Microsoft\WindowsUpdate\Orchestrator\UScheduler_Oobe\EdgeUpdate'
 
 Set-OfflineReg 'HKLM\zSOFTWARE\Policies\Microsoft\Windows\BackupAndRestore' 'DisableBackup'   'REG_DWORD' '1'
 
-# -- 5p. SmartScreen -----------------------------------------------------------
 Show-Progress "Configuring SmartScreen..." 78
 Set-OfflineReg 'HKLM\zSOFTWARE\Policies\Microsoft\Windows\System'               'EnableSmartScreen'          'REG_DWORD' '0'
 Set-OfflineReg 'HKLM\zSOFTWARE\Policies\Microsoft\MicrosoftEdge\PhishingFilter' 'EnabledV9'                  'REG_DWORD' '0'
-Set-OfflineReg 'HKLM\zSOFTWARE\Policies\Microsoft\Windows Defender\SmartScreen' 'ConfigureAppInstallControl' 'REG_SZ'    'Anywhere'
-
-# -- 5q. Unload hives ---------------------------------------------------------
+Set-OfflineReg 
 Show-Progress "Unloading offline registry hives..." 82
 foreach ($h in @('zCOMPONENTS','zDEFAULT','zNTUSER','zSOFTWARE','zSYSTEM')) {
     & reg unload "HKLM\$h" 2>&1 | Out-Null
 }
 Show-Progress "All registry tweaks applied." 85 -Done
 
-# -- 5r. Write embedded autounattend.xml ---------------------------------------
 Show-Progress "Writing autounattend.xml..." 88
 Set-Content -Path (Join-Path $isoContents "autounattend.xml") `
             -Value (Get-EmbeddedXml) -Encoding UTF8 -Force
-Show-Progress "autounattend.xml written." 90 -Done
 
-# -- 5s. Embed niix-tweaks.ps1 + register desktop RunOnce ---------------------
-# UserOnce.ps1 (from autounattend) deletes all .lnk shortcuts on first login,
-# so we cannot place a shortcut -- we use a RunOnce key instead, which fires
-# AFTER UserOnce has already cleared the desktop, copying the .ps1 directly.
 Show-Progress "Embedding niix-tweaks.ps1 into image..." 92
 
 $setupScriptsDir = Join-Path $mountDir "Windows\Setup\Scripts"
@@ -524,7 +508,7 @@ $runOnceVal = 'powershell.exe -WindowStyle Hidden -ExecutionPolicy Bypass -NoPro
 
 Show-Progress "niix-tweaks.ps1 embedded + RunOnce set." 94 -Done
 
-# ---- 5t. Write wallpaper into image ----
+
 Show-Progress "Writing wallpaper into image..." 96
 $wallDir  = Join-Path $mountDir "Windows\Web\Wallpaper\Niix"
 New-Item -ItemType Directory -Path $wallDir -Force | Out-Null
@@ -532,8 +516,7 @@ New-Item -ItemType Directory -Path $wallDir -Force | Out-Null
 $wallBytes = Get-EmbeddedWall
 [System.IO.File]::WriteAllBytes((Join-Path $wallDir "niix-wall.png"), $wallBytes)
 
-# Set as default wallpaper for all new users via DefaultUser hive
-# (hive is reloaded here - was unloaded in 5q but we need it again)
+
 $defaultDatWall = Join-Path $mountDir "Users\Default\NTUSER.DAT"
 & reg load HKLM\zNTUSERWALL $defaultDatWall 2>&1 | Out-Null
 
@@ -544,12 +527,10 @@ $wallRegPath = 'HKLM\zNTUSERWALL\Control Panel\Desktop'
 & reg add $wallRegPath /v WallpaperOriginX /t REG_SZ /d '0'  /f 2>&1 | Out-Null
 & reg add $wallRegPath /v WallpaperOriginY /t REG_SZ /d '0'  /f 2>&1 | Out-Null
 
-# Theme path so wallpaper loads correctly on first boot
-& reg add 'HKLM\zNTUSERWALL\Software\Microsoft\Windows\CurrentVersion\Themes' /v CurrentTheme /t REG_SZ /d 'C:\Windows\resources\Themes\aero.theme' /f 2>&1 | Out-Null
-& reg add 'HKLM\zNTUSERWALL\Software\Microsoft\Windows\CurrentVersion\Themes' /v LastTheme    /t REG_SZ /d 'C:\Windows\resources\Themes\aero.theme' /f 2>&1 | Out-Null
 
-# RunOnce: write ApplyWallpaper.ps1 and call it at first login (VM-safe)
-# RUNDLL32 UpdatePerUserSystemParameters forces shell to reload wallpaper
+& reg add 'HKLM\zNTUSERWALL\Software\Microsoft\Windows\CurrentVersion\Themes' /v CurrentTheme /t REG_SZ /d 'C:\Windows\resources\Themes\aero.theme' /f 2>&1 | Out-Null
+& reg add 'HKLM\zNTUSERWALL\Software\Microsoft\Windows\CurrentVersion\Themes' /v LastTheme    /t REG_SZ /d 'C:\Windows\resources\Themes\aero.theme' /f 2>&1 | Out-N
+
 $applyWallContent  = "Set-ItemProperty 'HKCU:\\Control Panel\\Desktop' Wallpaper "
 $applyWallContent += "'C:\\Windows\\Web\\Wallpaper\\Niix\\niix-wall.png';`n"
 $applyWallContent += "Set-ItemProperty 'HKCU:\\Control Panel\\Desktop' WallpaperStyle '10';`n"
@@ -564,7 +545,7 @@ $runOnceWall = 'powershell.exe -WindowStyle Hidden -ExecutionPolicy Bypass -NoPr
 
 & reg unload HKLM\zNTUSERWALL 2>&1 | Out-Null
 
-# Write PersonalizationCSP into the already-mounted zSOFTWARE hive (5c loaded it)
+
 & reg add 'HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\PersonalizationCSP' `
     /v DesktopImagePath      /t REG_SZ    /d 'C:\Windows\Web\Wallpaper\Niix\niix-wall.png' /f 2>&1 | Out-Null
 & reg add 'HKLM\zSOFTWARE\Microsoft\Windows\CurrentVersion\PersonalizationCSP' `
@@ -578,7 +559,7 @@ $runOnceWall = 'powershell.exe -WindowStyle Hidden -ExecutionPolicy Bypass -NoPr
 
 Show-Progress "Wallpaper embedded and set as default." 98 -Done
 
-# -- 5t. Remove telemetry scheduled task files ---------------------------------
+
 Show-Progress "Removing telemetry scheduled task files..." 99
 $tasks = "$mountDir\Windows\System32\Tasks"
 foreach ($f in @(
@@ -604,25 +585,17 @@ foreach ($d in @(
 Remove-Item (Join-Path $isoContents "support") -Recurse -Force -ErrorAction SilentlyContinue
 Show-Progress "All modifications complete." 100 -Done
 
-# ===========================================================================
-#  STEP 6  --  DISM CLEANUP
-# ===========================================================================
 Write-Title "STEP 6 -- DISM component cleanup (this takes several minutes)..."
 Show-Progress "Running DISM /StartComponentCleanup /ResetBase..." 30
 & dism /English "/image:$mountDir" /Cleanup-Image /StartComponentCleanup /ResetBase 2>&1 | Out-Null
 Show-Progress "DISM cleanup complete." 100 -Done
 
-# ===========================================================================
-#  STEP 7  --  SAVE install.wim
-# ===========================================================================
+
 Write-Title "STEP 7 -- Saving modified install.wim (takes several minutes)..."
 Show-Progress "Dismounting and saving install.wim..." 30
 Dismount-WindowsImage -Path $mountDir -Save -ErrorAction Stop | Out-Null
 Show-Progress "install.wim saved." 100 -Done
 
-# ===========================================================================
-#  STEP 8  --  STRIP UNUSED EDITIONS
-# ===========================================================================
 Write-Title "STEP 8 -- Stripping unused editions..."
 Show-Progress "Exporting edition: $selectedEdition..." 40
 $exportWim = Join-Path $isoContents "sources\install_export.wim"
@@ -636,9 +609,7 @@ Show-Progress "Dismounting source ISO..." 95
 Dismount-DiskImage -ImagePath $selectedISO -ErrorAction SilentlyContinue | Out-Null
 Show-Progress "Source ISO dismounted." 100 -Done
 
-# ===========================================================================
-#  STEP 9  --  LOCATE OSCDIMG
-# ===========================================================================
+
 Write-Title "STEP 9 -- Locating oscdimg.exe..."
 Show-Progress "Searching for oscdimg.exe..." 50
 
@@ -674,9 +645,6 @@ if (-not $oscdimg) {
 }
 Show-Progress "oscdimg.exe found." 100 -Done
 
-# ===========================================================================
-#  STEP 10  --  BUILD ISO
-# ===========================================================================
 Write-Title "STEP 10 -- Building output ISO..."
 
 $isoBase   = [System.IO.Path]::GetFileNameWithoutExtension($selectedISO)
