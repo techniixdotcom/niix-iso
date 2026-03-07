@@ -93,11 +93,11 @@ Clear-Host
 Write-Banner ""
 Write-Banner "  +----------------------------------------------------------+"
 Write-Banner "  |                                                          |"
-Write-Banner "  |   NN   NN  IIIII  IIIII  XX   XX                        |"
-Write-Banner "  |   NNN  NN    I      I     XX XX                         |"
-Write-Banner "  |   NN N NN    I      I      XXX                          |"
-Write-Banner "  |   NN  NNN    I      I     XX XX                         |"
-Write-Banner "  |   NN   NN  IIIII  IIIII  XX   XX  DEBLOAT  v2.0        |"
+Write-Banner "  |   NN   NN  IIIII  IIIII  XX   XX                         |"
+Write-Banner "  |   NNN  NN    I      I     XX XX                          |"
+Write-Banner "  |   NN N NN    I      I      XXX                           |"
+Write-Banner "  |   NN  NNN    I      I     XX XX                          |"
+Write-Banner "  |   NN   NN  IIIII  IIIII  XX   XX  DEBLOAT  v2.0          |"
 Write-Banner "  |                                                          |"
 Write-Banner "  |      Windows 11 ISO Debloat & Privacy Hardener           |"
 Write-Banner "  |      autounattend.xml + niix-tweaks.ps1 embedded         |"
@@ -779,9 +779,9 @@ Write-Banner "  +----------------------------------------------------------+"
 Write-Banner "  |                                                          |"
 Write-Banner "  |   BUILD COMPLETE                                         |"
 Write-Banner "  |                                                          |"
-Write-Host   ("  |   Output  : {0,-46}|" -f $outName)         -ForegroundColor $PINK
-Write-Host   ("  |   Size    : {0,-46}|" -f "$outGB GB")       -ForegroundColor $PINK
-Write-Host   ("  |   Edition : {0,-46}|" -f $selectedEdition)  -ForegroundColor $PINK
+Write-Host   (" |   Output  : {0,-46}|" -f $outName)         -ForegroundColor $PINK
+Write-Host   (" |   Size    : {0,-46}|" -f "$outGB GB")       -ForegroundColor $PINK
+Write-Host   (" |   Edition : {0,-46}|" -f $selectedEdition)  -ForegroundColor $PINK
 Write-Banner "  |                                                          |"
 Write-Banner "  +----------------------------------------------------------+"
 Write-Host ""
