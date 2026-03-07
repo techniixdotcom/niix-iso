@@ -4,7 +4,7 @@
     niix-tweaks.ps1 - Post-install privacy hardening, debloat and service tweaks
 .DESCRIPTION
     Run once on a fresh Windows 11 install. Removes Edge, Windows Backup,
-    applies all privacy/service tweaks and dark theme correctly.
+    applies all privacy/service tweaks and dark theme.
 #>
 
 # ---- Self-elevate ----
@@ -56,7 +56,6 @@ Clear-Host
 Write-Host ""
 Write-Host "  +----------------------------------------------------------+" -ForegroundColor $C
 Write-Host "  |   niix-tweaks  --  Post-Install Hardening Script         |" -ForegroundColor $C
-Write-Host "  |   Running as Administrator. Restart when done.           |" -ForegroundColor $C
 Write-Host "  +----------------------------------------------------------+" -ForegroundColor $C
 Write-Host ""
 
@@ -91,7 +90,7 @@ foreach ($pkg in $bloat) { Remove-AppXByName $pkg }
 Write-Ok "AppX removal pass complete"
 
 # ============================================================
-#  2. REMOVE WINDOWS BACKUP (WindowsCapability, not AppX)
+#  2. REMOVE WINDOWS BACKUP
 # ============================================================
 Write-Title "2. Removing Windows Backup..."
 
@@ -110,8 +109,8 @@ try {
 Remove-AppXByName 'Microsoft.WindowsBackup'
 
 # Disable backup service and policy
-Disable-Svc 'SDRSVC'   # Windows Backup service
-Disable-Svc 'wbengine' # Block Level Backup Engine
+Disable-Svc 'SDRSVC'
+Disable-Svc 'wbengine'
 Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\BackupAndRestore' 'DisableBackup' 'DWord' 1
 
 Write-Ok "Windows Backup disabled"
@@ -121,13 +120,12 @@ Write-Ok "Windows Backup disabled"
 # ============================================================
 Write-Title "3. Removing Microsoft Edge completely..."
 
-# Step 1: Run the official uninstaller if Edge is still present (it may have been
-# removed offline already by niixdebloat.ps1, but run it anyway to be sure)
+# Step 1: Run the official uninstaller if Edge is still present
 $edgeSetups = @(Get-ChildItem "C:\Program Files (x86)\Microsoft\Edge\Application\*\Installer\setup.exe" -ErrorAction SilentlyContinue)
 if ($edgeSetups.Count -gt 0) {
     Write-Body "Edge install found - running official uninstaller..."
     try {
-        # Stub file unlocks the uninstaller (winutil method)
+        # Stub file unlocks the uninstaller
         $stubDir = "C:\Windows\SystemApps\Microsoft.MicrosoftEdge_8wekyb3d8bbwe"
         if (-not (Test-Path $stubDir)) { New-Item -Path $stubDir -ItemType Directory -Force | Out-Null }
         New-Item -Path "$stubDir\MicrosoftEdge.exe" -Force | Out-Null
@@ -321,7 +319,6 @@ Write-Ok "Taskbar and UI cleaned up"
 
 # ============================================================
 #  10. DARK THEME
-#  Must restart Explorer after setting to take effect properly
 # ============================================================
 Write-Title "10. Applying dark theme..."
 
@@ -349,11 +346,11 @@ public class NiixWin32 {
     [NiixWin32]::SendMessageTimeout([IntPtr]0xffff, 0x1A, [IntPtr]::Zero, 'ImmersiveColorSet', 0x2, 5000, [ref]$result) | Out-Null
 } catch {}
 
-# Restart Explorer so theme applies visually right now
+# Restart Explorer so theme applies visually
 Write-Body "Restarting Explorer to apply theme..."
 Stop-Process -Name explorer -Force -ErrorAction SilentlyContinue
 Start-Sleep -Seconds 2
-# Explorer auto-restarts; if not, force it
+# Explorer auto-restarts
 if (-not (Get-Process explorer -ErrorAction SilentlyContinue)) {
     Start-Process explorer
 }
@@ -386,7 +383,7 @@ Set-Reg 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\OneDrive' 'DisableLibrariesDe
 # ============================================================
 Write-Title "12. Configuring Windows Update..."
 
-# Remove the OOBE-time suppression keys (they were written to prevent updates during setup)
+# Remove the OOBE-time suppression keys
 'NoAutoUpdate','AUOptions','UseWUServer' | ForEach-Object {
     Remove-ItemProperty 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU' $_ -Force -ErrorAction SilentlyContinue
 }
